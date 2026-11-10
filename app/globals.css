@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply antialiased text-gray-900 bg-slate-50 selection:bg-blue-100 selection:text-blue-900;
+  }
+}
+
