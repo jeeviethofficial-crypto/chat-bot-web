@@ -18,9 +18,49 @@ const STORAGE_KEY = 'gemini_chatbot_history_v1';
 
 const STARTER_SUGGESTIONS = [
   'What are the key features of this website?',
-  'How does Gemini 2.0 Flash differ from earlier models?',
+  'How does Gemini 3.8 Flash differ from earlier models?',
   'Help me draft a concise product announcement.',
 ];
+
+/**
+ * Sanitizes and extracts human-readable text from raw error objects or nested JSON strings
+ */
+function extractCleanErrorMessage(err: unknown): string {
+  let message = '';
+  if (err && typeof err === 'object') {
+    const anyErr = err as Record<string, any>;
+    message = anyErr.message || anyErr.error || '';
+  } else if (typeof err === 'string') {
+    message = err;
+  }
+
+  // Unwrap potential nested JSON strings returned by Google GenAI SDK
+  for (let i = 0; i < 3; i++) {
+    if (typeof message === 'string' && (message.trim().startsWith('{') || message.trim().startsWith('['))) {
+      try {
+        const parsed = JSON.parse(message);
+        if (parsed?.error?.message) {
+          message = parsed.error.message;
+        } else if (parsed?.message) {
+          message = parsed.message;
+        } else if (parsed?.error && typeof parsed.error === 'string') {
+          message = parsed.error;
+        } else {
+          break;
+        }
+      } catch {
+        break;
+      }
+    } else {
+      break;
+    }
+  }
+
+  return (
+    (typeof message === 'string' && message.trim()) ||
+    'Failed to reach Gemini. Please check your network connection and API key.'
+  );
+}
 
 /**
  * Lightweight helper to render formatted text (code blocks, inline code, bold, lists)
@@ -176,7 +216,7 @@ export default function ChatBot({ initialOpen = false, mode = 'floating' }: Chat
         id: 'welcome-message',
         role: 'model',
         content:
-          '👋 Hi! I am your AI assistant powered by **Gemini 2.0 Flash**. How can I assist you today?',
+          '👋 Hi! I am your AI assistant powered by **Gemini 3.8 Flash**. How can I assist you today?',
         timestamp: new Date().toISOString(),
       },
     ]);
@@ -298,8 +338,7 @@ export default function ChatBot({ initialOpen = false, mode = 'floating' }: Chat
       if (err.name === 'AbortError') return;
 
       console.error('Chat error:', err);
-      const errorMessage =
-        err?.message || 'Failed to reach Gemini. Please check your network and API key.';
+      const errorMessage = extractCleanErrorMessage(err);
       setError(errorMessage);
 
       setMessages((prev) =>
@@ -324,7 +363,7 @@ export default function ChatBot({ initialOpen = false, mode = 'floating' }: Chat
       id: `welcome-${Date.now()}`,
       role: 'model',
       content:
-        '👋 Chat history cleared. How can I assist you with Gemini 2.0 Flash today?',
+        '👋 Chat history cleared. How can I assist you with Gemini 3.8 Flash today?',
       timestamp: new Date().toISOString(),
     };
     setMessages([freshMessage]);
@@ -388,7 +427,7 @@ export default function ChatBot({ initialOpen = false, mode = 'floating' }: Chat
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-semibold tracking-wide">Gemini Assistant</h2>
               <span className="rounded bg-indigo-500/30 px-1.5 py-0.5 text-[10px] font-medium text-indigo-200">
-                2.0 Flash
+                3.8 Flash
               </span>
             </div>
             <p className="flex items-center gap-1.5 text-xs text-slate-300">

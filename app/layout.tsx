@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Next.js Gemini AI Chatbot',
-  description: 'Clean and minimal AI chatbot integrated with Gemini 2.0 Flash and Next.js App Router',
+  description: 'Clean and minimal AI chatbot integrated with Gemini 3.8 Flash and Next.js App Router',
 };
 
 export default function RootLayout({

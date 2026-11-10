@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 
+// Ensure this Route Handler is never statically evaluated during deployment
+export const dynamic = 'force-dynamic';
+
 // Initialize the Gemini client on demand using server-side environment variable.
 // This ensures GEMINI_API_KEY is never exposed to the client browser.
 function getGeminiClient(): GoogleGenAI {
@@ -18,15 +21,53 @@ export interface ClientMessage {
   content: string;
 }
 
-// Low-latency Flash models with fallback cascade for high demand / retired endpoints
+// Low-latency Flash models with fallback cascade for high demand / retired endpoints.
+// Gemini 2.0 and 2.5 models have been retired by Google in favor of Gemini 3.x Flash.
 const CANDIDATE_MODELS = [
   process.env.GEMINI_MODEL,
-  'gemini-3.1-flash-lite',
-  'gemini-3.5-flash',
   'gemini-3.8-flash',
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
+  'gemini-3.6-flash',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-3.1-flash-lite',
 ].filter(Boolean) as string[];
+
+function extractCleanErrorMessage(err: unknown): string {
+  let message = '';
+  if (err && typeof err === 'object') {
+    const anyErr = err as Record<string, any>;
+    message = anyErr.message || anyErr.error || '';
+  } else if (typeof err === 'string') {
+    message = err;
+  }
+
+  // Unwrap potential nested JSON strings returned by Google GenAI SDK
+  for (let i = 0; i < 3; i++) {
+    if (typeof message === 'string' && (message.trim().startsWith('{') || message.trim().startsWith('['))) {
+      try {
+        const parsed = JSON.parse(message);
+        if (parsed?.error?.message) {
+          message = parsed.error.message;
+        } else if (parsed?.message) {
+          message = parsed.message;
+        } else if (parsed?.error && typeof parsed.error === 'string') {
+          message = parsed.error;
+        } else {
+          break;
+        }
+      } catch {
+        break;
+      }
+    } else {
+      break;
+    }
+  }
+
+  return (
+    (typeof message === 'string' && message.trim()) ||
+    'An unexpected error occurred while communicating with the Gemini API.'
+  );
+}
 
 async function generateStreamWithFallback(ai: GoogleGenAI, contents: any[]) {
   const uniqueModels = Array.from(new Set(CANDIDATE_MODELS));
@@ -47,8 +88,8 @@ async function generateStreamWithFallback(ai: GoogleGenAI, contents: any[]) {
     } catch (err: any) {
       lastError = err;
       const status = err?.status;
-      // If 404 (model retired/superseded) or 503 (temporary high demand), try next candidate
-      if (status === 404 || status === 503) {
+      // If 404 (model retired/superseded), 503 (temporary high demand), 429 (rate limit), or 500, try next candidate
+      if (status === 404 || status === 503 || status === 429 || status === 500) {
         console.warn(`Model "${model}" returned HTTP ${status}. Retrying with next candidate...`);
         continue;
       }
@@ -135,11 +176,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Gemini Chat API Route Error:', error);
+    const cleanMessage = extractCleanErrorMessage(error);
     return NextResponse.json(
       {
-        error:
-          error?.message ||
-          'An unexpected error occurred while communicating with the Gemini API.',
+        error: cleanMessage,
       },
       { status: 500 }
     );

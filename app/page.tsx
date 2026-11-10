@@ -66,7 +66,7 @@ export default function Home() {
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-200/80 bg-blue-50/80 px-3.5 py-1 text-xs font-medium text-blue-700 shadow-xs backdrop-blur-xs">
             <span className="flex h-2 w-2 rounded-full bg-blue-600"></span>
-            Powered by @google/genai & Gemini 2.0 Flash
+            Powered by @google/genai & Gemini 3.8 Flash
           </div>
 
           <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl md:text-6xl">
@@ -119,11 +119,11 @@ export default function Home() {
                 </svg>
               </div>
               <h3 className="mt-4 text-base font-semibold text-slate-900">
-                Gemini 2.0 Flash
+                Gemini 3.8 Flash
               </h3>
               <p className="mt-2 text-sm text-slate-600 leading-relaxed">
                 Utilizes the latest low-latency multimodal model from Google
-                through the brand-new official <code>@google/genai</code> SDK.
+                with multi-model fallback through the official <code>@google/genai</code> SDK.
               </p>
             </div>
 
@@ -226,7 +226,7 @@ export default function Home() {
                 3. Google AI
               </span>
               <h4 className="mt-1 font-semibold text-slate-800">
-                Gemini 2.0 Flash
+                Gemini 3.8 Flash
               </h4>
               <p className="mt-1 text-xs text-slate-500">
                 Streams tokens back over HTTP chunked transfer encoding directly
